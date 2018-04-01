@@ -43,11 +43,14 @@ app.set('view engine', 'handlebars');
 
   /////////////Query database for all pokemon///////////////
 
+//Show form to create new pokemon
+
 app.get('/new', (request, response) => {
   // respond with HTML page with form to create new pokemon
   response.render('new');
 });
 
+//Show list of pokemon
 app.get('/', (request, response) => {
   
   const client = new Client({
@@ -66,6 +69,7 @@ app.get('/', (request, response) => {
         console.error('query error:', err.stack);
       } else
       {
+        newPokemon = [];
         for (i=0; i<res.rows.length; i++){
           newPokemon.push(res.rows[i]);
         };
@@ -109,6 +113,8 @@ app.get('/:id', (request, response) => {
   })
 })
 
+//Get form to edit pokemon details
+
 app.get('/:id/edit', (request, response) => {
 
   let client = new Client({
@@ -137,6 +143,37 @@ app.get('/:id/edit', (request, response) => {
   });
 });
 
+//Update changes to pokemon in database
+
+app.put('/:id', (request, response) => {
+
+  let client = new Client({
+    user: 'smu',
+    host: '127.0.0.1',
+    database: 'pokemons',
+    port: 5432,
+  });
+
+  client.connect((err) => {
+    if (err) console.error('connection error:', err.stack);
+    let params = request.body;
+
+    let queryString = 'UPDATE pokemon SET name=$1, img=$2, height=$3, weight=$4 WHERE id=$5';
+    let value = [params.name, params.img, params.height, params.weight, params.id];
+
+    client.query(queryString, value, (err, res) => {
+      if (err) {
+        console.error('query error:', err.stack);
+      } else 
+      {
+        response.redirect('/' + params.id);
+        client.end();
+      };
+    });
+  });
+});
+
+
 app.post('/pokemon', (req, response) => {
   let params = req.body;
 
@@ -160,7 +197,35 @@ app.post('/pokemon', (req, response) => {
   });
 });
 
-//Save the created pokemon into database
+
+//Delete pokemon
+
+app.delete('/:id', (req, response) => {
+
+  let queryString = 'DELETE FROM pokemon WHERE id = $1;'
+  let values = [req.params.id];
+
+  client.connect((err) => {
+    if (err) console.error('connection error:', err.stack);
+
+    client.query(queryString, values, (err, res) => {
+      if (err) {
+        console.error('query error:', err.stack);
+      } else {
+        console.log('query result:', res);
+
+        // redirect to home page
+        response.redirect('/');
+        client.end();
+      }
+      
+    });
+  });
+});
+
+
+
+// //Save the created pokemon into database
 
 app.post("/", (request, response) => {
 
@@ -187,7 +252,6 @@ app.post("/", (request, response) => {
   });
 });
 
-app.post()
 
 /**
  * ===================================
